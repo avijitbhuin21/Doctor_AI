@@ -1,5 +1,7 @@
 import streamlit as st
+from utils import *
 
+helper = Helper()
 
 # Initialize session state variables if they don't exist
 if 'initial_render' not in st.session_state:
@@ -20,7 +22,7 @@ def set_doctor_mode():
     st.session_state.initial_render = False
 
 # Page configuration
-st.set_page_config(page_title="Clickable Boxes")
+st.set_page_config(page_title="DOCTOR-AI")
 
 # Custom CSS to style the boxes
 st.markdown("""
@@ -109,8 +111,8 @@ elif st.session_state.patient:
             "name": st.session_state.name,
             "age": st.session_state.age,
             "gender": st.session_state.gender,
-            "phone": st.session_state.phone,
-            "email": st.session_state.email,
+            "height": st.session_state.height,
+            "weight": st.session_state.weight,
             "blood_group": st.session_state.blood_group,
             "symptoms": st.session_state.symptoms,
             "medical_history": st.session_state.medical_history,
@@ -118,6 +120,11 @@ elif st.session_state.patient:
             "allergies": st.session_state.allergies
         }
         st.session_state.form_submitted = True
+        # Clear existing messages
+        st.session_state.messages = []
+        # Get initial AI response
+        initial_response = helper.ask_doctor(patient_data=st.session_state.patient_data, conversation=[])
+        st.session_state.messages.append({"role": "assistant", "content": initial_response})
 
     # Show form if not submitted
     if not st.session_state.form_submitted:
@@ -131,8 +138,8 @@ elif st.session_state.patient:
             st.selectbox("Gender", ["Select", "Male", "Female", "Other"], key="gender")
             
         with col2:
-            st.text_input("Phone Number", key="phone", placeholder="optional")
-            st.text_input("Email", key="email", placeholder="optional")
+            st.text_input("Height (in cm)", key="height", placeholder="optional")
+            st.text_input("Weight (in kg)", key="weight", placeholder="optional")
             st.selectbox("Blood Group", ["Select", "A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"], key="blood_group")
         
         st.markdown("### Medical Information")
@@ -162,8 +169,8 @@ elif st.session_state.patient:
                 st.markdown(f"**Age:** {st.session_state.patient_data['age']} years")
                 st.markdown(f"**Gender:** {st.session_state.patient_data['gender']}")
             with col2:
-                st.markdown(f"**Phone Number:** {st.session_state.patient_data['phone']}")
-                st.markdown(f"**Email:** {st.session_state.patient_data['email']}")
+                st.markdown(f"**Height:** {st.session_state.patient_data['height']}")
+                st.markdown(f"**Weight:** {st.session_state.patient_data['weight']}")
                 st.markdown(f"**Blood Group:** {st.session_state.patient_data['blood_group']}")
 
         # Patient Issues Expander
@@ -198,8 +205,9 @@ elif st.session_state.patient:
             # Add user message to chat history
             st.session_state.messages.append({"role": "user", "content": prompt})
             
-            # Simulate AI response (replace this with actual AI integration)
-            ai_response = f"I understand your concern about '{prompt}'. This is a placeholder response. In a real implementation, this would be connected to a medical AI model that can provide appropriate medical guidance while noting that it's not a replacement for professional medical advice."
+            # Get AI response
+            ai_response = helper.ask_doctor(patient_data=st.session_state.patient_data, 
+                                         conversation=st.session_state.messages)
             
             # Display assistant response
             with st.chat_message("assistant"):
@@ -207,11 +215,13 @@ elif st.session_state.patient:
             
             # Add assistant response to chat history
             st.session_state.messages.append({"role": "assistant", "content": ai_response})
+            
+            # Rerun to update the chat display
+            st.rerun()
 
         # Add disclaimer at the bottom
         st.markdown("---")
         st.markdown("*Disclaimer: This is a demonstration medical chat assistant. Please consult with a qualified healthcare professional for actual medical advice.*")
-
 
 elif st.session_state.doctor:
     st.title("Doctor Interface")
