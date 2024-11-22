@@ -130,7 +130,7 @@ elif st.session_state.patient:
             "symptoms": st.session_state.symptoms,
             "medical_history": st.session_state.medical_history,
             "medications": st.session_state.medications,
-            "allergies": st.session_state.allergies
+            "extra_details": st.session_state.extra_details
         }
         st.session_state.form_submitted = True
         # Clear existing messages
@@ -153,13 +153,13 @@ elif st.session_state.patient:
         with col2:
             st.text_input("Height (in cm)", key="height", placeholder="optional")
             st.text_input("Weight (in kg)", key="weight", placeholder="optional")
-            st.selectbox("Blood Group", ["Select", "A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"], key="blood_group")
+            st.selectbox("Blood Group", ["Select", "A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-", "Not Known"], key="blood_group")
         
         st.markdown("### Medical Information")
         st.text_area("Current Symptoms", key="symptoms")
         st.text_area("Medical History", key="medical_history", placeholder="optional")
         st.text_area("Current Medications", key="medications", placeholder="optional")
-        st.text_area("Known Allergies", key="allergies", placeholder="optional")
+        st.text_area("Extra Details", key="extra_details", placeholder="optional")
         
         if st.button("Continue to Chat"):
             # Basic validation
@@ -197,8 +197,8 @@ elif st.session_state.patient:
             st.markdown("**Current Medications:**")
             st.text(st.session_state.patient_data['medications'])
             
-            st.markdown("**Known Allergies:**")
-            st.text(st.session_state.patient_data['allergies'])
+            st.markdown("**Extra Details:**")
+            st.text(st.session_state.patient_data['extra_details'])
 
         # Chat Interface
         st.markdown("### Chat with Medical Assistant")
@@ -261,14 +261,14 @@ elif st.session_state.doctor:
             weight = st.number_input("Weight (in kg)", min_value=0.0, placeholder="Optional")
         
         blood_group = st.selectbox("Blood Group", 
-                                ["Select", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])
+                                ["Select", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Not Known"])
 
         # Medical Information Section
         st.subheader("Medical Information")
         current_symptoms = st.text_area("Current Symptoms")
         medical_history = st.text_area("Medical History", placeholder="Optional")
         current_medications = st.text_area("Current Medications", placeholder="Optional")
-        known_allergies = st.text_area("Known Allergies", placeholder="Optional")
+        extra_details = st.text_area("Extra Details", placeholder="Optional")
 
         # File Upload Section
         st.subheader("Medical Reports")
@@ -307,13 +307,13 @@ elif st.session_state.doctor:
                 "full_name": full_name,
                 "age": age,
                 "gender": gender,
-                "height": height if height > 0 else None,
-                "weight": weight if weight > 0 else None,
+                "height": str(height)+"cm" if height > 0 else None,
+                "weight": str(weight)+"kg" if weight > 0 else None,
                 "blood_group": blood_group,
                 "current_symptoms": current_symptoms,
                 "medical_history": medical_history if medical_history else None,
                 "current_medications": current_medications if current_medications else None,
-                "known_allergies": known_allergies if known_allergies else None,
+                "extra_details": extra_details if extra_details else None,
             }
 
             # Handle uploaded files
@@ -322,7 +322,7 @@ elif st.session_state.doctor:
                 for uploaded_file in uploaded_files:
                     file_data = {
                         "filename": uploaded_file.name,
-                        "content": uploaded_file.getvalue(),
+                        "content": uploaded_file.read(),
                         "type": uploaded_file.type
                     }
                     files_data.append(file_data)
@@ -333,34 +333,13 @@ elif st.session_state.doctor:
             # Display processing message
             with st.spinner("Analyzing patient information..."):
                 try:
-                    response = helper.
+                    response = helper.Generate_differential_Diagonosis(patient_data=patient_data)
 
                     st.success("Analysis complete!")
                     
                     # Display results section
                     st.subheader("Differential Diagnosis")
-                    st.info("""
-                    [This is a placeholder for the LLM-generated differential diagnosis]
-                    
-                    To integrate with your LLM API:
-                    1. Add your API credentials
-                    2. Replace the placeholder section with actual API calls
-                    3. Process and display the API response
-                    
-                    Number of files analyzed: {len(patient_data["medical_reports"])}
-                    """)
+                    st.info(response)
 
                 except Exception as e:
                     st.error(f"An error occurred during analysis: {str(e)}")
-
-    # Add some CSS to improve the form layout
-    st.markdown("""
-        <style>
-        .stTextInput > div > div > input {
-            max-width: 100%;
-        }
-        .stTextArea > div > div > textarea {
-            max-width: 100%;
-        }
-        </style>
-        """, unsafe_allow_html=True)

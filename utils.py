@@ -5,7 +5,11 @@ from dotenv import load_dotenv
 import os
 from mistralai import Mistral
 import random
-
+import io
+import base64
+import fitz  
+from PIL import Image
+from IPython.display import display, Image as IPyImage
 
 load_dotenv()
 DEBUG = False
@@ -23,8 +27,6 @@ DIAGONOSING_PROMPT = """Based on this data if you can guess the disease then ans
 If you want to ask the patient question to get more context answer in this JSON format:
 {"status": "pending", "content": question(str)}
 
-Note that you can ask maximum of 5 questions.
-try to ask least number of questions.
 You may only ask one question at a time."""
 
 DECIDING_PROMPT = """Based on this data You have to guess the disease and generate a mesage for the user telling him the disease and probable medications for that.
@@ -37,7 +39,34 @@ Also mention the next step the user should take.
 Generate this is MARKDOWN format.
 Also You Must Mention that the patient is advised to consult a doctor before taking any of those meds."""
 
+REPORT_GENERATION_PROMPT = """Analyze all these images and generate me a overall report from the data in these images without leaving any significant details behind.
+Cause this will be used to diagonose the patient. Generate this in MARKDOWN format."""
 
+DIFFERENTIAL_DIAGONOSIS_GENERATION_PROMPT = """Please generate a differential diagnosis using the following template for a given case:
+
+Patient Information
+- Name:  
+- Age:  
+- Gender:  
+- Main Symptoms:  
+- Past Medical History:  
+- Known Medical Conditions:  
+- Current Medications:
+
+Differential Diagnosis:
+
+For each potential disease, include:
+
+## 1. Disease Name (Chance Percentage)
+- Reasoning:
+  - Symptom 1
+  - Symptom 2
+  - Relevant history or examination finding
+- Probable Medications:
+  - Medication 1
+  - Medication 2
+
+Repeat for up to 10 diseases that are most likely based on the patient information."""
 ##############################################################################################################################################################################################################################
 class LLM:
     def extract_query(self, text: str) -> str:
@@ -100,12 +129,89 @@ class LLM:
 
         except Exception as e:
             print(e)
+
+    def ask_Pixtral(self, question, images, model = "pixtral-large-2411"):
+        try:
+            self.Pixtral_Client = Mistral(
+                    api_key=random.choice(os.getenv('Mistral_Api_Key').split()),
+                )
+            messages = [
+                            {
+                                "role": "user",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": question
+                                    }
+                                ] + [{
+                                        "type": "image_url",
+                                        "image_url": f"data:image/jpeg;base64,{i}" 
+                                    } for i in images]
+                            }
+                        ]
+            chat_response = self.Pixtral_Client.chat.complete(
+                            model=model,
+                            messages= messages
+                        )
+            
+            return chat_response.choices[0].message.content
+        
+        except Exception as e:
+            print(e)
+
+
 class File:
     def __init__(self):
-        pass
+        self.llm_client = LLM()
 
+    def Extract_Text(self, file_bytes, file_name):      
+        if "jpg" not in file_name and "jpeg" not in file_name and "png" not in file_name:    
+            base64_images = []
+            try:
+                with fitz.open(stream=file_bytes) as doc:
+                    for page_num in range(len(doc)):
+                        page = doc.load_page(page_num)
+                        pix = page.get_pixmap(matrix=fitz.Matrix(300 / 72, 300 / 72))
+                        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                        img_byte_arr = io.BytesIO()
+                        img.save(img_byte_arr, format='JPEG')
+                        base64_img = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
+                        base64_images.append(base64_img)
+
+                report = self.llm_client.ask_Pixtral(question=REPORT_GENERATION_PROMPT, images= base64_images)
+
+                return report
+        
+            except Exception as e:
+                raise ValueError(f"Conversion error: {str(e)}")
+        else:
+            base64_images = base64.b64encode(file_bytes).decode('utf-8')
+            report = self.llm_client.ask_Pixtral(question=REPORT_GENERATION_PROMPT, images= base64_images)
+            return report
+
+    def display_images(self, base64_images):
+        for i, img in enumerate(base64_images):
+            try:
+                # Decode the base64 image
+                image_data = base64.b64decode(img)
+                # Display the image
+                display(IPyImage(data=image_data, format='jpeg'))
+                print(f"Page {i+1} image displayed.")
+            except Exception as e:
+                print(f"Error displaying image for page {i+1}: {e}")
+        
     def handle_file(self, file_data):
-        pass
+        final_report = ""
+
+        for each_file in file_data:
+            file_text = self.Extract_Text(each_file['content'], each_file['filename'])
+            final_report += file_text + "\n\n"
+
+        return final_report
+        
+
+
+
 
 class Helper:
     def __init__(self):
@@ -152,7 +258,7 @@ class Helper:
         patient_profile, history, question_count = self.get_prompt(patient_data= patient_data, conversation= conversation)
 
         if history == None:
-            prompt = patient_profile + "\n" + DIAGONOSING_PROMPT + "\n" + 'Also Greet the user first then ask the question, as this is the start of our conversation with the patient.'
+            prompt = patient_profile + "\n" + DIAGONOSING_PROMPT + "\n" + "Note that you can ask maximum of 5 questions." + "\n" + "try to ask least number of questions." + "\n" + 'Also Greet the user first then ask the question, as this is the start of our conversation with the patient.'
             log_debug(prompt)
             ai_ans = self.llm.ask_Mistral(question= prompt, JSON= True)
         else:
@@ -176,6 +282,17 @@ class Helper:
     
     def Generate_differential_Diagonosis(self, patient_data):
         
+        medical_reports = patient_data['medical_reports']
+        Final_Medical_report = self.file_handler.handle_file(medical_reports)
+        patient_data['medical_reports'] = Final_Medical_report
+
+        prompt,_,_ = self.get_prompt(patient_data= patient_data, conversation= [])
+        
+        diagonosis = self.llm.ask_llama(query= prompt + "\n\n" + DIFFERENTIAL_DIAGONOSIS_GENERATION_PROMPT)
+
+        return diagonosis
+
+
 
 
 
