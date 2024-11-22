@@ -1,4 +1,6 @@
 import streamlit as st
+import pandas as pd
+import io
 from utils import *
 
 helper = Helper()
@@ -48,6 +50,17 @@ st.markdown("""
         color: #fff;
         line-height: 1.5;
         transition: color 0.3s ease;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+st.markdown("""
+    <style>
+    .stTextInput > div > div > input {
+        max-width: 100%;
+    }
+    .stTextArea > div > div > textarea {
+        max-width: 100%;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -224,8 +237,130 @@ elif st.session_state.patient:
         st.markdown("*Disclaimer: This is a demonstration medical chat assistant. Please consult with a qualified healthcare professional for actual medical advice.*")
 
 elif st.session_state.doctor:
-    st.title("Doctor Interface")
-    if st.button("Back to Home"):
-        st.session_state.initial_render = True
-        st.session_state.doctor = False
-        st.rerun()
+    # Title and introduction
+    st.title("Patient Information Form")
+    st.write("Please fill in your details")
+
+    # Create a form
+    with st.form("patient_form"):
+        # Personal Information Section
+        st.subheader("Personal Information")
+        full_name = st.text_input("Full Name")
+        col1, col2 = st.columns(2)
+        with col1:
+            age = st.number_input("Age", min_value=0, max_value=150, value=0)
+        with col2:
+            gender = st.selectbox("Gender", ["Select", "Male", "Female", "Other"])
+
+        # Physical Characteristics Section
+        st.subheader("Physical Characteristics")
+        col3, col4 = st.columns(2)
+        with col3:
+            height = st.number_input("Height (in cm)", min_value=0.0, placeholder="Optional")
+        with col4:
+            weight = st.number_input("Weight (in kg)", min_value=0.0, placeholder="Optional")
+        
+        blood_group = st.selectbox("Blood Group", 
+                                ["Select", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])
+
+        # Medical Information Section
+        st.subheader("Medical Information")
+        current_symptoms = st.text_area("Current Symptoms")
+        medical_history = st.text_area("Medical History", placeholder="Optional")
+        current_medications = st.text_area("Current Medications", placeholder="Optional")
+        known_allergies = st.text_area("Known Allergies", placeholder="Optional")
+
+        # File Upload Section
+        st.subheader("Medical Reports")
+        uploaded_files = st.file_uploader("Upload medical reports", 
+                                        type=['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
+                                        accept_multiple_files=True,
+                                        help="Drag and drop your medical reports here")
+
+        # Submit button
+        submitted = st.form_submit_button("Generate Diagnosis")
+
+    # Display uploaded files information
+    if uploaded_files:
+        st.subheader("Uploaded Files")
+        for uploaded_file in uploaded_files:
+            col1, col2, col3 = st.columns([2, 1, 1])
+            with col1:
+                st.write(f"📄 {uploaded_file.name}")
+            with col2:
+                file_size = len(uploaded_file.getvalue()) / 1024  # Size in KB
+                if file_size < 1024:
+                    st.write(f"Size: {file_size:.1f} KB")
+                else:
+                    st.write(f"Size: {file_size/1024:.1f} MB")
+            with col3:
+                st.write(f"Type: {uploaded_file.type}")
+
+    # Process the form data when submitted
+    if submitted:
+        # Validate required fields
+        if not full_name or gender == "Select" or blood_group == "Select" or not current_symptoms:
+            st.error("Please fill in all required fields.")
+        else:
+            # Prepare data for LLM analysis
+            patient_data = {
+                "full_name": full_name,
+                "age": age,
+                "gender": gender,
+                "height": height if height > 0 else None,
+                "weight": weight if weight > 0 else None,
+                "blood_group": blood_group,
+                "current_symptoms": current_symptoms,
+                "medical_history": medical_history if medical_history else None,
+                "current_medications": current_medications if current_medications else None,
+                "known_allergies": known_allergies if known_allergies else None,
+            }
+
+            # Handle uploaded files
+            if uploaded_files:
+                files_data = []
+                for uploaded_file in uploaded_files:
+                    file_data = {
+                        "filename": uploaded_file.name,
+                        "content": uploaded_file.getvalue(),
+                        "type": uploaded_file.type
+                    }
+                    files_data.append(file_data)
+                patient_data["medical_reports"] = files_data
+            else:
+                patient_data["medical_reports"] = []
+
+            # Display processing message
+            with st.spinner("Analyzing patient information..."):
+                try:
+                    response = helper.
+
+                    st.success("Analysis complete!")
+                    
+                    # Display results section
+                    st.subheader("Differential Diagnosis")
+                    st.info("""
+                    [This is a placeholder for the LLM-generated differential diagnosis]
+                    
+                    To integrate with your LLM API:
+                    1. Add your API credentials
+                    2. Replace the placeholder section with actual API calls
+                    3. Process and display the API response
+                    
+                    Number of files analyzed: {len(patient_data["medical_reports"])}
+                    """)
+
+                except Exception as e:
+                    st.error(f"An error occurred during analysis: {str(e)}")
+
+    # Add some CSS to improve the form layout
+    st.markdown("""
+        <style>
+        .stTextInput > div > div > input {
+            max-width: 100%;
+        }
+        .stTextArea > div > div > textarea {
+            max-width: 100%;
+        }
+        </style>
+        """, unsafe_allow_html=True)

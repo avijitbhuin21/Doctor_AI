@@ -67,7 +67,7 @@ class LLM:
                 print(e)
                 print(response.choices[0].message.content)
 
-    def ask_Mistral(self, question, sys="You're a Doctor-AI with 20 years of experience.", JSON= False, model = "mistral-large-2407"):
+    def ask_Mistral(self, question, sys="You're a Doctor-AI with 20 years of experience.", JSON= False, model = "mistral-large-2411"):
         try:
             self.Mistral_Client = Mistral(
                     api_key=random.choice(os.getenv('Mistral_Api_Key').split()),
@@ -100,10 +100,17 @@ class LLM:
 
         except Exception as e:
             print(e)
+class File:
+    def __init__(self):
+        pass
+
+    def handle_file(self, file_data):
+        pass
 
 class Helper:
     def __init__(self):
         self.llm = LLM()
+        self.file_handler = File()
 
     def get_prompt(self, patient_data, conversation):
         base_prompt = """This is the patient Profile:\n"""
@@ -166,6 +173,10 @@ class Helper:
         
         log_debug(ai_ans)
         return ai_ans['content']
+    
+    def Generate_differential_Diagonosis(self, patient_data):
+        
+
 
 
 
