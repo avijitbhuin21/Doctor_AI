@@ -13,6 +13,9 @@ DOCTOR-AI is a medical assistant web application built using **Streamlit** that 
 - **File Upload**: Doctors can upload medical reports (PDFs, images, Word documents) for further analysis, which enhances diagnosis suggestions.
 - **Medical Disclaimer**: All AI-generated advice comes with a disclaimer that it should not replace professional medical consultation.
 
+## Try it Here
+**https://doctor-ai-by-avijit.streamlit.app/**
+
 ## Prerequisites
 
 Before running the application, ensure the following requirements are met:
