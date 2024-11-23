@@ -12,21 +12,78 @@ if 'doctor' not in st.session_state:
     st.session_state.doctor = False
 if 'patient' not in st.session_state:
     st.session_state.patient = False
+if "form_submitted" not in st.session_state:
+    st.session_state.form_submitted = False
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "patient_data" not in st.session_state:
+    st.session_state.patient_data = {}
 
 def set_patient_mode():
     st.session_state.patient = True
     st.session_state.doctor = False
     st.session_state.initial_render = False
+    st.session_state.form_submitted = False
+    st.session_state.messages = []
+    st.session_state.patient_data = {}
 
 def set_doctor_mode():
     st.session_state.doctor = True
     st.session_state.patient = False
     st.session_state.initial_render = False
 
+def validate_form_data():
+    required_fields = {
+        "name": st.session_state.name,
+        "age": st.session_state.age,
+        "gender": st.session_state.gender,
+        "blood_group": st.session_state.blood_group,
+        "symptoms": st.session_state.symptoms
+    }
+    
+    return all([
+        bool(required_fields["name"]),
+        required_fields["age"] > 0,
+        required_fields["gender"] != "Select",
+        required_fields["blood_group"] != "Select",
+        bool(required_fields["symptoms"].strip())
+    ])
+
+def submit_form():
+    try:
+        st.session_state.patient_data = {
+            "name": st.session_state.name,
+            "age": st.session_state.age,
+            "gender": st.session_state.gender,
+            "height": st.session_state.height,
+            "weight": st.session_state.weight,
+            "blood_group": st.session_state.blood_group,
+            "symptoms": st.session_state.symptoms,
+            "medical_history": st.session_state.medical_history,
+            "medications": st.session_state.medications,
+            "extra_details": st.session_state.extra_details
+        }
+        st.session_state.form_submitted = True
+        st.session_state.messages = []
+        
+        # Get initial AI response
+        initial_response = helper.ask_doctor(
+            patient_data=st.session_state.patient_data, 
+            conversation=[]
+        )
+        st.session_state.messages.append({
+            "role": "assistant", 
+            "content": initial_response
+        })
+        return True
+    except Exception as e:
+        st.error(f"Error submitting form: {str(e)}")
+        return False
+
 # Page configuration
 st.set_page_config(page_title="DOCTOR-AI")
 
-# Custom CSS to style the boxes
+# Custom CSS (same as before)
 st.markdown("""
     <style>
     .box-container {
@@ -51,11 +108,6 @@ st.markdown("""
         line-height: 1.5;
         transition: color 0.3s ease;
     }
-    </style>
-    """, unsafe_allow_html=True)
-
-st.markdown("""
-    <style>
     .stTextInput > div > div > input {
         max-width: 100%;
     }
@@ -69,11 +121,9 @@ st.markdown("""
 if st.session_state.initial_render:
     col1, col2 = st.columns([1, 1])
 
-    # First Box - For Patients
     with col1:
         if st.button("For Individual Patients", key="patient_button", use_container_width=True, on_click=set_patient_mode):
             pass
-
         st.markdown("""
             <div class="box-container">
                 <div class="box-description">
@@ -83,11 +133,9 @@ if st.session_state.initial_render:
             </div>
         """, unsafe_allow_html=True)
 
-    # Second Box - For Doctors
     with col2:
         if st.button("For Doctors", key="doctor_button", use_container_width=True, on_click=set_doctor_mode):
             pass
-
         st.markdown("""
             <div class="box-container">
                 <div class="box-description">
@@ -103,79 +151,42 @@ if st.session_state.initial_render:
         </div>
     """, unsafe_allow_html=True)
 
-# Handle different states
 elif st.session_state.patient:
-    # Initialize session states
-    if "form_submitted" not in st.session_state:
-        st.session_state.form_submitted = False
-
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-    if "patient_data" not in st.session_state:
-        st.session_state.patient_data = {}
-
-    # Title
     st.title("DOCTOR-AI Chat")
-    # Add disclaimer 
     st.markdown("*Disclaimer: This is a demonstration medical chat assistant. Please consult with a qualified healthcare professional for actual medical advice.*")
     st.markdown("---")
 
-    # Function to handle form submission
-    def submit_form():
-        st.session_state.patient_data = {
-            "name": st.session_state.name,
-            "age": st.session_state.age,
-            "gender": st.session_state.gender,
-            "height": st.session_state.height,
-            "weight": st.session_state.weight,
-            "blood_group": st.session_state.blood_group,
-            "symptoms": st.session_state.symptoms,
-            "medical_history": st.session_state.medical_history,
-            "medications": st.session_state.medications,
-            "extra_details": st.session_state.extra_details
-        }
-        st.session_state.form_submitted = True
-        # Clear existing messages
-        st.session_state.messages = []
-        # Get initial AI response
-        initial_response = helper.ask_doctor(patient_data=st.session_state.patient_data, conversation=[])
-        st.session_state.messages.append({"role": "assistant", "content": initial_response})
-
-    # Show form if not submitted
     if not st.session_state.form_submitted:
-        st.markdown("### Please fill in your details")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.text_input("Full Name", key="name")
-            st.number_input("Age", min_value=0, max_value=120, key="age")
-            st.selectbox("Gender", ["Select", "Male", "Female", "Other"], key="gender")
+        with st.form(key='patient_form'):
+            st.markdown("### Please fill in your details")
             
-        with col2:
-            st.text_input("Height (in cm)", key="height", placeholder="optional")
-            st.text_input("Weight (in kg)", key="weight", placeholder="optional")
-            st.selectbox("Blood Group", ["Select", "A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-", "Not Known"], key="blood_group")
-        
-        st.markdown("### Medical Information")
-        st.text_area("Current Symptoms", key="symptoms")
-        st.text_area("Medical History", key="medical_history", placeholder="optional")
-        st.text_area("Current Medications", key="medications", placeholder="optional")
-        st.text_area("Extra Details", key="extra_details", placeholder="optional")
-        
-        if st.button("Continue to Chat"):
-            # Basic validation
-            if (st.session_state.name and 
-                st.session_state.age > 0 and 
-                st.session_state.gender != "Select" and 
-                st.session_state.blood_group != "Select"):
-                submit_form()
-                st.rerun()
-            else:
-                st.error("Please fill in all required fields.")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.text_input("Full Name", key="name")
+                st.number_input("Age", min_value=0, max_value=120, key="age")
+                st.selectbox("Gender", ["Select", "Male", "Female", "Other"], key="gender")
+                
+            with col2:
+                st.text_input("Height (in cm)", key="height", placeholder="optional")
+                st.text_input("Weight (in kg)", key="weight", placeholder="optional")
+                st.selectbox("Blood Group", ["Select", "A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-", "Not Known"], key="blood_group")
+            
+            st.markdown("### Medical Information")
+            st.text_area("Current Symptoms", key="symptoms")
+            st.text_area("Medical History", key="medical_history", placeholder="optional")
+            st.text_area("Current Medications", key="medications", placeholder="optional")
+            st.text_area("Extra Details", key="extra_details", placeholder="optional")
+            
+            submit_button = st.form_submit_button("Continue to Chat")
+            
+            if submit_button:
+                if validate_form_data():
+                    if submit_form():
+                        st.rerun()
+                else:
+                    st.error("Please fill in all required fields.")
 
-    # Show chat interface after form submission
     else:
         # Patient Details Expander
         with st.expander("Patient Details", expanded=False):
@@ -189,20 +200,6 @@ elif st.session_state.patient:
                 st.markdown(f"**Weight:** {st.session_state.patient_data['weight']}")
                 st.markdown(f"**Blood Group:** {st.session_state.patient_data['blood_group']}")
 
-        # Patient Issues Expander
-        with st.expander("Patient Issues", expanded=False):
-            st.markdown("**Current Symptoms:**")
-            st.text(st.session_state.patient_data['symptoms'])
-            
-            st.markdown("**Medical History:**")
-            st.text(st.session_state.patient_data['medical_history'])
-            
-            st.markdown("**Current Medications:**")
-            st.text(st.session_state.patient_data['medications'])
-            
-            st.markdown("**Extra Details:**")
-            st.text(st.session_state.patient_data['extra_details'])
-
         # Chat Interface
         st.markdown("### Chat with Medical Assistant")
         st.markdown("---")
@@ -214,26 +211,24 @@ elif st.session_state.patient:
 
         # Chat input
         if prompt := st.chat_input("Type your message here..."):
-            # Display user message
             with st.chat_message("user"):
                 st.markdown(prompt)
             
-            # Add user message to chat history
             st.session_state.messages.append({"role": "user", "content": prompt})
             
-            # Get AI response
-            ai_response = helper.ask_doctor(patient_data=st.session_state.patient_data, 
-                                         conversation=st.session_state.messages)
-            
-            # Display assistant response
-            with st.chat_message("assistant"):
-                st.markdown(ai_response)
-            
-            # Add assistant response to chat history
-            st.session_state.messages.append({"role": "assistant", "content": ai_response})
-            
-            # Rerun to update the chat display
-            st.rerun()
+            try:
+                ai_response = helper.ask_doctor(
+                    patient_data=st.session_state.patient_data, 
+                    conversation=st.session_state.messages
+                )
+                
+                with st.chat_message("assistant"):
+                    st.markdown(ai_response)
+                
+                st.session_state.messages.append({"role": "assistant", "content": ai_response})
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error getting AI response: {str(e)}")
 
         
 
