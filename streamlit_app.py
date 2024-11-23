@@ -117,6 +117,9 @@ elif st.session_state.patient:
 
     # Title
     st.title("DOCTOR-AI Chat")
+    # Add disclaimer 
+    st.markdown("*Disclaimer: This is a demonstration medical chat assistant. Please consult with a qualified healthcare professional for actual medical advice.*")
+    st.markdown("---")
 
     # Function to handle form submission
     def submit_form():
@@ -232,9 +235,7 @@ elif st.session_state.patient:
             # Rerun to update the chat display
             st.rerun()
 
-        # Add disclaimer at the bottom
-        st.markdown("---")
-        st.markdown("*Disclaimer: This is a demonstration medical chat assistant. Please consult with a qualified healthcare professional for actual medical advice.*")
+        
 
 elif st.session_state.doctor:
     # Title and introduction
