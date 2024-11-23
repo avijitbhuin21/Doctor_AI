@@ -55,13 +55,13 @@ def submit_form():
             "name": st.session_state.name,
             "age": st.session_state.age,
             "gender": st.session_state.gender,
-            "height": st.session_state.height,
-            "weight": st.session_state.weight,
+            "height": st.session_state.height if st.session_state.height else "Not Provided",
+            "weight": st.session_state.weight if st.session_state.weight else "Not Provided",
             "blood_group": st.session_state.blood_group,
             "symptoms": st.session_state.symptoms,
-            "medical_history": st.session_state.medical_history,
-            "medications": st.session_state.medications,
-            "extra_details": st.session_state.extra_details
+            "medical_history": st.session_state.medical_history if st.session_state.medical_history else "None",
+            "medications": st.session_state.medications if st.session_state.medications else "None",
+            "extra_details": st.session_state.extra_details if st.session_state.extra_details else "None"
         }
         st.session_state.form_submitted = True
         st.session_state.messages = []
@@ -153,8 +153,7 @@ if st.session_state.initial_render:
 
 elif st.session_state.patient:
     st.title("DOCTOR-AI Chat")
-    st.markdown("*Disclaimer: This is a demonstration medical chat assistant. Please consult with a qualified healthcare professional for actual medical advice.*")
-    st.markdown("---")
+    
 
     if not st.session_state.form_submitted:
         with st.form(key='patient_form'):
@@ -200,6 +199,22 @@ elif st.session_state.patient:
                 st.markdown(f"**Weight:** {st.session_state.patient_data['weight']}")
                 st.markdown(f"**Blood Group:** {st.session_state.patient_data['blood_group']}")
 
+        with st.expander("Patient Issues", expanded=False):
+            st.markdown("**Current Symptoms:**")
+            st.text(st.session_state.patient_data['symptoms'])
+
+            st.markdown("---")
+            st.markdown("**Medical History:**")
+            st.text(st.session_state.patient_data['medical_history'])
+
+            st.markdown("---")
+            st.markdown("**Current Medications:**")
+            st.text(st.session_state.patient_data['medications'])
+
+            st.markdown("---")
+            st.markdown("**Extra Details:**")
+            st.text(st.session_state.patient_data['extra_details'])
+
         # Chat Interface
         st.markdown("### Chat with Medical Assistant")
         st.markdown("---")
@@ -230,6 +245,9 @@ elif st.session_state.patient:
             except Exception as e:
                 st.error(f"Error getting AI response: {str(e)}")
 
+        st.markdown("---")
+        st.markdown("*Disclaimer: This is a demonstration medical chat assistant. Please consult with a qualified healthcare professional for actual medical advice.*")
+        
         
 
 elif st.session_state.doctor:
