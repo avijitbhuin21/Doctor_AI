@@ -114,6 +114,13 @@ st.markdown("""
     .stTextArea > div > div > textarea {
         max-width: 100%;
     }
+    .dev-details{
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: green;
+        transition: color 0.3s ease;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -148,6 +155,11 @@ if st.session_state.initial_render:
     st.markdown("""
         <div class="box-header">
             Do not consume any medicine prescribed by the ai without consulting a doctor.
+        </div>
+                
+        <div class="dev-details">
+            Developers: Avijit Bhuin -----(https://www.linkedin.com/in/avijit-bhuin-44121a209/)
+                        Muhammad Hamid ---(https://www.linkedin.com/in/muhammadhamid19/)
         </div>
     """, unsafe_allow_html=True)
 
