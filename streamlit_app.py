@@ -156,8 +156,9 @@ if st.session_state.initial_render:
         <div class="box-header">
             Do not consume any medicine prescribed by the ai without consulting a doctor.
                 
-            Developers: Avijit Bhuin -----(https://www.linkedin.com/in/avijit-bhuin-44121a209/)
-                    Muhammad Hamid ---(https://www.linkedin.com/in/muhammadhamid19/)
+            Developers: 
+                Avijit Bhuin -----(https://www.linkedin.com/in/avijit-bhuin-44121a209/)
+                Muhammad Hamid ---(https://www.linkedin.com/in/muhammadhamid19/)
         </div>
             
     """, unsafe_allow_html=True)
